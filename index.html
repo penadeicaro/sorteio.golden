@@ -479,7 +479,7 @@ function criarConfete() {
   }
 }
 
-/* ===== SORTEIO COM DESACELERAÇÃO DRAMÁTICA ===== */
+/* ===== SORTEIO COM DESACELERAÇÃO DRAMÁTICA E ALEATORIEDADE REAL ===== */
 btn.addEventListener("click", () => {
   btn.style.opacity = 0;
   lista.style.opacity = 0;
@@ -500,7 +500,15 @@ btn.addEventListener("click", () => {
 let ultimoSomRoleta = 0;
 
 function iniciarRoleta() {
-  let indice = 0;
+  // ===== SORTEIO JUSTO E ALEATÓRIO =====
+  // O vencedor é escolhido ANTES da animação começar
+  const indiceVencedor = Math.floor(Math.random() * participantes.length);
+  const vencedor = participantes[indiceVencedor];
+  
+  console.log(`🎲 Vencedor sorteado: ${vencedor} (posição ${indiceVencedor + 1}/${participantes.length})`);
+  
+  // Índice inicial aleatório para variar a animação visual
+  let indice = Math.floor(Math.random() * participantes.length);
   const inicio = Date.now();
   const duracao = 12000; // 12 segundos
   const metade = 6000; // 6 segundos
@@ -509,10 +517,12 @@ function iniciarRoleta() {
     const decorrido = Date.now() - inicio;
     
     if (decorrido > duracao) {
-      finalizar(participantes[indice % participantes.length]);
+      // Garante que o vencedor sorteado seja exibido
+      finalizar(vencedor);
       return;
     }
 
+    // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = participantes[indice % participantes.length];
     
     // Throttle do som: só toca se passou pelo menos 60ms desde o último
