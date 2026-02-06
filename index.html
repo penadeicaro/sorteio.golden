@@ -22,10 +22,10 @@ body {
   background: #000;
   color: #fff;
   height: 100vh;
-  overflow: hidden; /* SEM BARRA GLOBAL */
+  overflow: hidden;
 }
 
-/* ===== TOPO ===== */
+/* TOPO */
 header {
   text-align: center;
   padding-top: 32px;
@@ -41,7 +41,7 @@ header h1 {
   font-weight: 700;
 }
 
-/* ===== CONTAINER CENTRAL ===== */
+/* ÁREA CENTRAL */
 main {
   height: calc(100vh - 200px);
   display: flex;
@@ -50,22 +50,21 @@ main {
   position: relative;
 }
 
-/* ===== LISTA ===== */
+/* LISTA */
 .lista-container {
   position: absolute;
   width: 100%;
   height: 100%;
   overflow-y: scroll;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE */
+  scrollbar-width: none;
 }
 
 .lista-container::-webkit-scrollbar {
-  display: none; /* Chrome */
+  display: none;
 }
 
 .lista {
-  padding-top: 45vh;  /* HEAD ROOM */
+  padding-top: 45vh;
   padding-bottom: 45vh;
 }
 
@@ -77,13 +76,12 @@ main {
   transform: scale(0.7);
   opacity: 0.35;
   transition:
-    transform 0.18s ease-out,
-    opacity 0.18s ease-out,
-    color 0.18s ease-out;
-  will-change: transform, opacity;
+    transform 0.2s ease-out,
+    opacity 0.2s ease-out,
+    color 0.2s ease-out;
 }
 
-/* ===== SORTEIO ===== */
+/* SORTEIO */
 .sorteio {
   position: absolute;
   text-align: center;
@@ -94,7 +92,6 @@ main {
 
 .sorteio.ativo {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .nome-sorteado {
@@ -114,7 +111,7 @@ main {
   opacity: 1;
 }
 
-/* ===== BOTÃO ===== */
+/* BOTÃO */
 footer {
   position: absolute;
   bottom: 32px;
@@ -140,30 +137,18 @@ button {
 <body>
 
 <header>
-  <!-- LOGO NA MESMA PASTA -->
   <img src="logo.png" alt="Logo">
   <h1>Sorteio ao Vivo</h1>
 </header>
 
 <main>
 
-  <!-- LISTA -->
   <div class="lista-container" id="lista">
     <div class="lista" id="listaInterna">
-      <div class="participante">Ana Paula</div>
-      <div class="participante">Bruno Silva</div>
-      <div class="participante">Carlos Eduardo</div>
-      <div class="participante">Daniela Rocha</div>
-      <div class="participante">Eduardo Lima</div>
-      <div class="participante">Fernanda Alves</div>
-      <div class="participante">Gabriel Costa</div>
-      <div class="participante">Helena Martins</div>
-      <div class="participante">Igor Santos</div>
-      <div class="participante">Juliana Pires</div>
+      <!-- PARTICIPANTES ENTRAM AQUI VIA CSV -->
     </div>
   </div>
 
-  <!-- SORTEIO -->
   <div class="sorteio" id="sorteio">
     <div class="nome-sorteado" id="nomeSorteado"></div>
     <div class="parabens" id="parabens">
@@ -178,14 +163,37 @@ button {
 </footer>
 
 <script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
+const COLUNA_NOME = 1;
+
 const lista = document.getElementById("lista");
-const participantes = document.querySelectorAll(".participante");
+const listaInterna = document.getElementById("listaInterna");
 const btn = document.getElementById("btnSortear");
 const sorteio = document.getElementById("sorteio");
 const nomeSorteado = document.getElementById("nomeSorteado");
 const parabens = document.getElementById("parabens");
 
+async function carregarParticipantes() {
+  const res = await fetch(CSV_URL);
+  const texto = await res.text();
+  const linhas = texto.split("\n").slice(1);
+
+  linhas.forEach(l => {
+    const cols = l.split(",");
+    const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
+    if (!nome) return;
+
+    const div = document.createElement("div");
+    div.className = "participante";
+    div.textContent = nome;
+    listaInterna.appendChild(div);
+  });
+
+  atualizarScroll();
+}
+
 function atualizarScroll() {
+  const participantes = document.querySelectorAll(".participante");
   const centro = window.innerHeight / 2;
 
   participantes.forEach(p => {
@@ -211,7 +219,6 @@ function atualizarScroll() {
 
 lista.addEventListener("scroll", atualizarScroll);
 window.addEventListener("resize", atualizarScroll);
-atualizarScroll();
 
 btn.addEventListener("click", () => {
   btn.style.opacity = 0;
@@ -221,13 +228,15 @@ btn.addEventListener("click", () => {
     lista.style.display = "none";
     sorteio.classList.add("ativo");
 
-    const nomes = [...participantes].map(p => p.textContent);
+    const nomes = [...document.querySelectorAll(".participante")].map(p => p.textContent);
     const vencedor = nomes[Math.floor(Math.random() * nomes.length)];
     nomeSorteado.textContent = vencedor;
 
     setTimeout(() => parabens.classList.add("ativo"), 2000);
   }, 1200);
 });
+
+carregarParticipantes();
 </script>
 
 </body>
