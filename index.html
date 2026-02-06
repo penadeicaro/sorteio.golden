@@ -389,12 +389,9 @@ async function carregarParticipantes() {
 /* ===== SOM SCROLL ===== */
 function tocarClickScroll() {
   try {
-    // Verifica se o áudio está pronto antes de manipular
-    if (click1.readyState >= 2) { // HAVE_CURRENT_DATA ou superior
-      click1.currentTime = 0;
-      click1.volume = 0.55;
-      click1.play().catch(() => {});
-    }
+    const som = click1.cloneNode();
+    som.volume = 0.55;
+    som.play().catch(() => {}); // Ignora erro se áudio falhar
   } catch (e) {
     // Silenciosamente ignora se áudio não está disponível
   }
@@ -548,14 +545,12 @@ function iniciarRoleta() {
     // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = participantes[indice % participantes.length];
     
-    // Som com throttle de 60ms (cria efeito de aceleração/desaceleração)
+    // Throttle do som: só toca se passou pelo menos 60ms desde o último
     const agora = Date.now();
     if (agora - ultimoSomRoleta > 60) {
       try {
-        if (click2.readyState >= 2) {
-          click2.currentTime = 0;
-          click2.play().catch(() => {});
-        }
+        click2.currentTime = 0;
+        click2.play().catch(() => {});
         ultimoSomRoleta = agora;
       } catch (e) {}
     }
