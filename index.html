@@ -300,7 +300,7 @@ button:disabled {
 <audio id="click2" src="click2.mp3" preload="auto"></audio>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-d16KOjhYvIm4KLp5FnvJW479ZZ6I5MJ-r734uCbPeiEEPrq66GN9uFp1wocuW0Ib1BGEcKTA-a4W/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
 const COLUNA_NOME = 1;
 
 const lista = document.getElementById("lista");
@@ -548,17 +548,8 @@ function iniciarRoleta() {
     // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = participantes[indice % participantes.length];
     
-    // Throttle do som: só toca se passou pelo menos 60ms desde o último
-    const agora = Date.now();
-    if (agora - ultimoSomRoleta > 60) {
-      try {
-        if (click2.readyState >= 2) { // Verifica se áudio está pronto
-          click2.currentTime = 0;
-          click2.play().catch(() => {});
-          ultimoSomRoleta = agora;
-        }
-      } catch (e) {}
-    }
+    // Toca som A CADA mudança de nome (sincronizado com a velocidade)
+    tocarSomRoleta();
 
     indice++;
     
@@ -580,6 +571,18 @@ function iniciarRoleta() {
   }
   
   girar();
+}
+
+// Função separada para tocar som da roleta
+function tocarSomRoleta() {
+  try {
+    if (click2.readyState >= 2) {
+      click2.currentTime = 0;
+      click2.play().catch(() => {});
+    }
+  } catch (e) {
+    // Ignora erros de áudio silenciosamente
+  }
 }
 
 function finalizar(nome) {
@@ -609,4 +612,3 @@ carregarParticipantes().then(sucesso => {
 
 </body>
 </html>
-
