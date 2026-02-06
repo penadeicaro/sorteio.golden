@@ -489,39 +489,36 @@ btn.addEventListener("click", () => {
 
 function iniciarRoleta() {
   let indice = 0;
+  let velocidade = 60;
   const inicio = Date.now();
-  const duracao = 7000; // 7 segundos total para mais tensão
-  
-  function girar() {
+  const duracao = 3500;
+  const inicioDesaceleracao = 2500; // Começa a desacelerar aos 2.5s
+
+  const loop = setInterval(() => {
+    roletaNome.textContent = participantes[indice % participantes.length];
+    
+    try {
+      click2.currentTime = 0;
+      click2.play().catch(() => {});
+    } catch (e) {}
+
+    indice++;
+    
     const decorrido = Date.now() - inicio;
-    const progresso = decorrido / duracao;
     
-    // Curva de desaceleração suave (easeOutCubic)
-    const easing = 1 - Math.pow(1 - progresso, 3);
-    
-    // Começa SUPER rápido (10ms) e desacelera até 1200ms
-    const velocidadeInicial = 10;
-    const velocidadeFinal = 1200;
-    const intervalo = velocidadeInicial + (easing * (velocidadeFinal - velocidadeInicial));
-    
-    if (decorrido < duracao) {
-      roletaNome.textContent = participantes[indice % participantes.length];
-      
-      try {
-        click2.currentTime = 0;
-        click2.play().catch(() => {});
-      } catch (e) {}
-      
-      indice++;
-      setTimeout(girar, intervalo);
+    // Velocidade normal até 2.5s
+    if (decorrido < inicioDesaceleracao) {
+      velocidade += 12;
     } else {
-      // Garante que para em um nome aleatório consistente
-      const vencedorIndice = Math.floor(Math.random() * participantes.length);
-      finalizar(participantes[vencedorIndice]);
+      // Desacelera progressivamente no último segundo
+      velocidade += 35;
     }
-  }
-  
-  girar();
+
+    if (decorrido > duracao) {
+      clearInterval(loop);
+      finalizar(roletaNome.textContent);
+    }
+  }, velocidade);
 }
 
 function finalizar(nome) {
