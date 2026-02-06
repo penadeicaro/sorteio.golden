@@ -494,8 +494,7 @@ function iniciarRoleta() {
   let velocidade = 200; // Começa DEVAGAR
   const inicio = Date.now();
   const duracao = 12000; // 12 segundos
-  const faseAceleracao = 4000; // Acelera até 4s
-  const faseDesaceleracao = 6000; // Desacelera a partir de 6s (fase 2 dura 2s)
+  const meioAnimacao = 6000; // Ponto de virada no meio
 
   function girar() {
     const decorrido = Date.now() - inicio;
@@ -514,18 +513,14 @@ function iniciarRoleta() {
 
     indice++;
     
-    // Fase 1 (0-4s): ACELERA (diminui velocidade/delay)
-    if (decorrido < faseAceleracao) {
+    // Primeira metade (0-6s): ACELERA (diminui delay)
+    if (decorrido < meioAnimacao) {
       velocidade -= 8; // Acelera
       if (velocidade < 40) velocidade = 40; // Velocidade máxima
     } 
-    // Fase 2 (4-6s): MANTÉM velocidade máxima por 2 segundos
-    else if (decorrido < faseDesaceleracao) {
-      velocidade = 40;
-    }
-    // Fase 3 (6-12s): DESACELERA (aumenta velocidade/delay)
+    // Segunda metade (6-12s): DESACELERA (aumenta delay)
     else {
-      velocidade += 30; // Desacelera bastante
+      velocidade += 30; // Desacelera
     }
 
     setTimeout(girar, velocidade);
