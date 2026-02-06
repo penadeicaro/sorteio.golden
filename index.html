@@ -1,107 +1,155 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sorteio ao Vivo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Sorteio ao Vivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+<style>
+:root {
+  --destaque: #fbba16;
+  --cinza: #777;
+}
 
-    body {
-      background: #000;
-      color: #fff;
-      height: 100vh;
-      overflow: hidden;
-    }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 
-    h1 {
-      text-align: center;
-      padding: 24px 0 12px;
-      font-size: 42px;
-      font-weight: 700;
-    }
+body {
+  background: #000;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden; /* SEM BARRA GLOBAL */
+}
 
-    main {
-      display: flex;
-      height: calc(100vh - 90px);
-    }
+/* ===== TOPO ===== */
+header {
+  text-align: center;
+  padding-top: 32px;
+}
 
-    /* LISTA */
-    .lista-container {
-      flex: 1;
-      overflow-y: auto;
-      scroll-behavior: smooth;
-      padding-top: 40vh;
-      padding-bottom: 40vh;
-    }
+header img {
+  height: 80px;
+  margin-bottom: 16px;
+}
 
-    .participante {
-      text-align: center;
-      padding: 16px 0;
-      font-size: 32px;
-      transform: scale(0.75);
-      opacity: 0.3;
-      color: #aaa;
-      transition:
-        transform 0.15s linear,
-        opacity 0.15s linear,
-        color 0.15s linear;
-      will-change: transform, opacity;
-    }
+header h1 {
+  font-size: 40px;
+  font-weight: 700;
+}
 
-    /* SORTEIO */
-    .sorteio {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      transform: translateY(-40px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.9s ease-out;
-    }
+/* ===== CONTAINER CENTRAL ===== */
+main {
+  height: calc(100vh - 200px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
 
-    .sorteio.ativo {
-      opacity: 1;
-      pointer-events: auto;
-    }
+/* ===== LISTA ===== */
+.lista-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE */
+}
 
-    .nome-sorteado {
-      font-size: 64px;
-      font-weight: 800;
-      color: #fbba16;
-      margin-bottom: 32px;
-      text-align: center;
-    }
+.lista-container::-webkit-scrollbar {
+  display: none; /* Chrome */
+}
 
-    button {
-      padding: 16px 32px;
-      font-size: 20px;
-      font-weight: 600;
-      border: none;
-      border-radius: 999px;
-      cursor: pointer;
-      background: #fbba16;
-      color: #000;
-      transition: opacity 0.8s ease-out;
-    }
-  </style>
+.lista {
+  padding-top: 45vh;  /* HEAD ROOM */
+  padding-bottom: 45vh;
+}
+
+.participante {
+  text-align: center;
+  padding: 14px 0;
+  font-size: 28px;
+  color: var(--cinza);
+  transform: scale(0.7);
+  opacity: 0.35;
+  transition:
+    transform 0.18s ease-out,
+    opacity 0.18s ease-out,
+    color 0.18s ease-out;
+  will-change: transform, opacity;
+}
+
+/* ===== SORTEIO ===== */
+.sorteio {
+  position: absolute;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+.sorteio.ativo {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nome-sorteado {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--destaque);
+  margin-bottom: 24px;
+}
+
+.parabens {
+  font-size: 26px;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.parabens.ativo {
+  opacity: 1;
+}
+
+/* ===== BOTÃO ===== */
+footer {
+  position: absolute;
+  bottom: 32px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  padding: 18px 36px;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: var(--destaque);
+  color: #000;
+  transition: opacity 1s ease;
+}
+</style>
 </head>
 
 <body>
 
+<header>
+  <!-- LOGO NA MESMA PASTA -->
+  <img src="logo.png" alt="Logo">
   <h1>Sorteio ao Vivo</h1>
+</header>
 
-  <main>
-    <!-- LISTA -->
-    <div class="lista-container" id="lista">
+<main>
+
+  <!-- LISTA -->
+  <div class="lista-container" id="lista">
+    <div class="lista" id="listaInterna">
       <div class="participante">Ana Paula</div>
       <div class="participante">Bruno Silva</div>
       <div class="participante">Carlos Eduardo</div>
@@ -112,72 +160,75 @@
       <div class="participante">Helena Martins</div>
       <div class="participante">Igor Santos</div>
       <div class="participante">Juliana Pires</div>
-      <div class="participante">Lucas Nogueira</div>
-      <div class="participante">Mariana Teixeira</div>
-      <div class="participante">Rafael Azevedo</div>
-      <div class="participante">Renata Farias</div>
-      <div class="participante">Thiago Barros</div>
     </div>
+  </div>
 
-    <!-- SORTEIO -->
-    <div class="sorteio" id="sorteio">
-      <div class="nome-sorteado" id="nomeSorteado">—</div>
-      <button id="btnSortear">Sortear</button>
+  <!-- SORTEIO -->
+  <div class="sorteio" id="sorteio">
+    <div class="nome-sorteado" id="nomeSorteado"></div>
+    <div class="parabens" id="parabens">
+      Parabéns, você é o ganhador(a) do sorteio!
     </div>
-  </main>
+  </div>
 
-  <script>
-    const lista = document.getElementById("lista");
-    const participantes = document.querySelectorAll(".participante");
-    const sorteio = document.getElementById("sorteio");
-    const nomeSorteado = document.getElementById("nomeSorteado");
-    const btn = document.getElementById("btnSortear");
+</main>
 
-    function atualizarFoco() {
-      const centro = window.innerHeight / 2;
+<footer>
+  <button id="btnSortear">Iniciar sorteio</button>
+</footer>
 
-      participantes.forEach(item => {
-        const rect = item.getBoundingClientRect();
-        const itemCentro = rect.top + rect.height / 2;
-        const distancia = Math.abs(itemCentro - centro);
+<script>
+const lista = document.getElementById("lista");
+const participantes = document.querySelectorAll(".participante");
+const btn = document.getElementById("btnSortear");
+const sorteio = document.getElementById("sorteio");
+const nomeSorteado = document.getElementById("nomeSorteado");
+const parabens = document.getElementById("parabens");
 
-        const maxDist = centro * 0.9;
-        const normalizado = Math.min(distancia / maxDist, 1);
-        const intensidade = 1 - normalizado;
+function atualizarScroll() {
+  const centro = window.innerHeight / 2;
 
-        const scale = 0.75 + intensidade * 0.75;
-        const opacity = 0.3 + intensidade * 0.7;
+  participantes.forEach(p => {
+    const rect = p.getBoundingClientRect();
+    const pCentro = rect.top + rect.height / 2;
+    const dist = Math.abs(pCentro - centro);
+    const max = centro * 0.85;
 
-        let color = "#aaa";
-        if (intensidade > 0.66) color = "#fbba16";
-        else if (intensidade > 0.33) color = "#fff";
+    let t = Math.max(0, 1 - dist / max);
 
-        item.style.transform = `scale(${scale})`;
-        item.style.opacity = opacity;
-        item.style.color = color;
-      });
-    }
+    const scale = 0.7 + t * 0.9;
+    const opacity = 0.35 + t * 0.65;
 
-    lista.addEventListener("scroll", atualizarFoco);
-    window.addEventListener("resize", atualizarFoco);
-    atualizarFoco();
+    let color = "#777";
+    if (t > 0.66) color = "#fbba16";
+    else if (t > 0.33) color = "#fff";
 
-    function iniciarSorteio() {
-      btn.style.opacity = 0;
-      btn.style.pointerEvents = "none";
+    p.style.transform = `scale(${scale})`;
+    p.style.opacity = opacity;
+    p.style.color = color;
+  });
+}
 
-      sorteio.classList.add("ativo");
+lista.addEventListener("scroll", atualizarScroll);
+window.addEventListener("resize", atualizarScroll);
+atualizarScroll();
 
-      const nomes = Array.from(participantes).map(p => p.textContent);
-      const vencedor = nomes[Math.floor(Math.random() * nomes.length)];
+btn.addEventListener("click", () => {
+  btn.style.opacity = 0;
+  lista.style.opacity = 0;
 
-      setTimeout(() => {
-        nomeSorteado.textContent = vencedor;
-      }, 400);
-    }
+  setTimeout(() => {
+    lista.style.display = "none";
+    sorteio.classList.add("ativo");
 
-    btn.addEventListener("click", iniciarSorteio);
-  </script>
+    const nomes = [...participantes].map(p => p.textContent);
+    const vencedor = nomes[Math.floor(Math.random() * nomes.length)];
+    nomeSorteado.textContent = vencedor;
+
+    setTimeout(() => parabens.classList.add("ativo"), 2000);
+  }, 1200);
+});
+</script>
 
 </body>
 </html>
