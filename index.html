@@ -27,7 +27,8 @@ body {
   background: #000;
   color: #fff;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  overflow-y: hidden;
+  overflow: hidden; /* Impede scroll tanto horizontal quanto vertical */
+  position: relative;
 }
 
 /* TOPO */
@@ -133,23 +134,23 @@ main {
 
 /* CONFETE */
 .confete {
-  position: fixed;
+  position: fixed; /* Fixed para ficar dentro da viewport */
   width: 10px;
   height: 10px;
   background: var(--destaque);
-  position: absolute;
   animation: cair 3s linear forwards;
   opacity: 0;
+  pointer-events: none; /* Não interfere com cliques */
 }
 
 @keyframes cair {
   0% {
     opacity: 1;
-    transform: translateY(-100vh) rotate(0deg);
+    transform: translateY(-20px) rotate(0deg); /* Começa dentro da tela */
   }
   100% {
     opacity: 0;
-    transform: translateY(100vh) rotate(720deg);
+    transform: translateY(100vh) rotate(720deg); /* Termina no fundo da viewport */
   }
 }
 
@@ -489,10 +490,11 @@ btn.addEventListener("click", () => {
 
 function iniciarRoleta() {
   let indice = 0;
-  let velocidade = 60;
+  let velocidade = 200; // Começa DEVAGAR
   const inicio = Date.now();
-  const duracao = 3500;
-  const inicioDesaceleracao = 2500; // Começa a desacelerar aos 2.5s
+  const duracao = 12000; // 12 segundos
+  const faseAceleracao = 4000; // Acelera até 4s
+  const faseDesaceleracao = 8000; // Desacelera a partir de 8s
 
   function girar() {
     const decorrido = Date.now() - inicio;
@@ -511,11 +513,18 @@ function iniciarRoleta() {
 
     indice++;
     
-    // Velocidade normal até 2.5s, depois desacelera
-    if (decorrido < inicioDesaceleracao) {
-      velocidade += 12; // incremento original
-    } else {
-      velocidade += 35; // desacelera mais rápido no final
+    // Fase 1 (0-4s): ACELERA (diminui velocidade/delay)
+    if (decorrido < faseAceleracao) {
+      velocidade -= 8; // Acelera
+      if (velocidade < 40) velocidade = 40; // Velocidade máxima
+    } 
+    // Fase 2 (4-8s): MANTÉM velocidade máxima
+    else if (decorrido < faseDesaceleracao) {
+      velocidade = 40;
+    }
+    // Fase 3 (8-12s): DESACELERA (aumenta velocidade/delay)
+    else {
+      velocidade += 30; // Desacelera bastante
     }
 
     setTimeout(girar, velocidade);
