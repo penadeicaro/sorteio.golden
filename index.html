@@ -457,6 +457,7 @@ function criarConfete() {
       const confete = document.createElement('div');
       confete.className = 'confete';
       confete.style.left = Math.random() * 100 + '%';
+      confete.style.top = '-20px'; // Começa acima da viewport
       confete.style.background = cores[Math.floor(Math.random() * cores.length)];
       confete.style.width = (Math.random() * 10 + 5) + 'px';
       confete.style.height = (Math.random() * 10 + 5) + 'px';
@@ -494,7 +495,7 @@ function iniciarRoleta() {
   const inicio = Date.now();
   const duracao = 12000; // 12 segundos
   const faseAceleracao = 4000; // Acelera até 4s
-  const faseDesaceleracao = 8000; // Desacelera a partir de 8s
+  const faseDesaceleracao = 6000; // Desacelera a partir de 6s (fase 2 dura 2s)
 
   function girar() {
     const decorrido = Date.now() - inicio;
@@ -518,11 +519,11 @@ function iniciarRoleta() {
       velocidade -= 8; // Acelera
       if (velocidade < 40) velocidade = 40; // Velocidade máxima
     } 
-    // Fase 2 (4-8s): MANTÉM velocidade máxima
+    // Fase 2 (4-6s): MANTÉM velocidade máxima por 2 segundos
     else if (decorrido < faseDesaceleracao) {
       velocidade = 40;
     }
-    // Fase 3 (8-12s): DESACELERA (aumenta velocidade/delay)
+    // Fase 3 (6-12s): DESACELERA (aumenta velocidade/delay)
     else {
       velocidade += 30; // Desacelera bastante
     }
