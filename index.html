@@ -548,8 +548,17 @@ function iniciarRoleta() {
     // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = participantes[indice % participantes.length];
     
-    // Toca som A CADA mudança de nome (sincronizado com a velocidade)
-    tocarSomRoleta();
+    // Som com throttle de 60ms (cria efeito de aceleração/desaceleração)
+    const agora = Date.now();
+    if (agora - ultimoSomRoleta > 60) {
+      try {
+        if (click2.readyState >= 2) {
+          click2.currentTime = 0;
+          click2.play().catch(() => {});
+        }
+        ultimoSomRoleta = agora;
+      } catch (e) {}
+    }
 
     indice++;
     
@@ -571,18 +580,6 @@ function iniciarRoleta() {
   }
   
   girar();
-}
-
-// Função separada para tocar som da roleta
-function tocarSomRoleta() {
-  try {
-    if (click2.readyState >= 2) {
-      click2.currentTime = 0;
-      click2.play().catch(() => {});
-    }
-  } catch (e) {
-    // Ignora erros de áudio silenciosamente
-  }
 }
 
 function finalizar(nome) {
