@@ -15,14 +15,19 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden; /* REMOVE ROLAGEM HORIZONTAL */
 }
 
 body {
   background: #000;
   color: #fff;
-  height: 100vh;
-  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-y: hidden;
 }
 
 /* TOPO */
@@ -48,14 +53,15 @@ main {
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow: hidden;
 }
 
 /* LISTA */
 .lista-container {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   overflow-y: scroll;
+  overflow-x: hidden;
   scrollbar-width: none;
 }
 
@@ -66,15 +72,18 @@ main {
 .lista {
   padding-top: 45vh;
   padding-bottom: 45vh;
+  width: 100%;
 }
 
 .participante {
+  width: 100%;
   text-align: center;
   padding: 14px 0;
   font-size: 28px;
   color: var(--cinza);
   transform: scale(0.7);
   opacity: 0.35;
+  will-change: transform, opacity, color;
   transition:
     transform 0.18s ease-out,
     opacity 0.18s ease-out,
@@ -97,7 +106,6 @@ main {
   font-size: 56px;
   font-weight: 700;
   color: #fff;
-  transition: transform 0.25s ease, color 0.25s ease;
 }
 
 .vencedor {
@@ -183,8 +191,9 @@ const click1 = document.getElementById("click1");
 const click2 = document.getElementById("click2");
 
 let participantes = [];
-let ultimoIndiceCentral = null;
+let indiceCentralAtual = null;
 
+/* ===== CSV ===== */
 async function carregarParticipantes() {
   const res = await fetch(CSV_URL);
   const texto = await res.text();
@@ -202,43 +211,37 @@ async function carregarParticipantes() {
     div.textContent = nome;
     listaInterna.appendChild(div);
   });
-
-  atualizarScroll();
 }
 
-function playClick1() {
+/* ===== SOM SCROLL ===== */
+function tocarClickScroll() {
   const som = click1.cloneNode();
-  som.volume = 0;
+  som.volume = 0.55;
   som.play();
-  let v = 0;
-  const fade = setInterval(() => {
-    v += 0.15;
-    som.volume = Math.min(v, 0.6);
-    if (v >= 0.6) clearInterval(fade);
-  }, 20);
 }
 
-function atualizarScroll() {
-  const centroY = window.innerHeight / 2;
+/* ===== LOOP CONTÍNUO (NÃO PERDE FOCO) ===== */
+function loopFoco() {
   const items = document.querySelectorAll(".participante");
+  const centroY = window.innerHeight / 2;
 
+  let menorDist = Infinity;
   let indiceMaisProximo = null;
-  let menorDistancia = Infinity;
 
   items.forEach((p, i) => {
     const rect = p.getBoundingClientRect();
-    const pCentro = rect.top + rect.height / 2;
-    const dist = Math.abs(pCentro - centroY);
+    const centro = rect.top + rect.height / 2;
+    const dist = Math.abs(centro - centroY);
 
-    if (dist < menorDistancia) {
-      menorDistancia = dist;
+    if (dist < menorDist) {
+      menorDist = dist;
       indiceMaisProximo = i;
     }
 
     const max = centroY * 0.9;
     const t = Math.max(0, 1 - dist / max);
 
-    p.style.transform = `scale(${0.7 + t * 0.8})`;
+    p.style.transform = `scale(${0.7 + t * 0.75})`;
     p.style.opacity = 0.3 + t * 0.6;
     p.style.color = "#777";
   });
@@ -249,16 +252,16 @@ function atualizarScroll() {
     p.style.transform = "scale(1.5)";
     p.style.opacity = 1;
 
-    if (indiceMaisProximo !== ultimoIndiceCentral) {
-      playClick1();
-      ultimoIndiceCentral = indiceMaisProximo;
+    if (indiceMaisProximo !== indiceCentralAtual) {
+      tocarClickScroll();
+      indiceCentralAtual = indiceMaisProximo;
     }
   }
+
+  requestAnimationFrame(loopFoco);
 }
 
-lista.addEventListener("scroll", atualizarScroll);
-window.addEventListener("resize", atualizarScroll);
-
+/* ===== SORTEIO ===== */
 btn.addEventListener("click", () => {
   btn.style.opacity = 0;
   lista.style.opacity = 0;
@@ -273,7 +276,7 @@ btn.addEventListener("click", () => {
 function iniciarRoleta() {
   let indice = 0;
   let velocidade = 60;
-  let inicio = Date.now();
+  const inicio = Date.now();
   const duracao = 3500;
 
   const loop = setInterval(() => {
@@ -297,7 +300,10 @@ function finalizar(nome) {
   setTimeout(() => parabens.classList.add("ativo"), 2000);
 }
 
-carregarParticipantes();
+/* INIT */
+carregarParticipantes().then(() => {
+  requestAnimationFrame(loopFoco);
+});
 </script>
 
 </body>
