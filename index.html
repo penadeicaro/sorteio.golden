@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Sorteio ao Vivo</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background: radial-gradient(circle at top, #111, #000);
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  header img {
+    height: 60px;
+    object-fit: contain;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  main {
+    display: flex;
+    height: calc(100vh - 100px);
+  }
+
+  .lista {
+    width: 35%;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .lista h2 {
+    margin-bottom: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  td {
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 16px;
+  }
+
+  .sorteio {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .nome-atual {
+    font-size: 48px;
+    font-weight: bold;
+    opacity: 0.4;
+    transition: all 0.15s ease;
+  }
+
+  .nome-final {
+    font-size: 64px;
+    font-weight: 800;
+    color: #00ffcc;
+    text-shadow: 0 0 30px rgba(0,255,200,0.8);
+    opacity: 1;
+  }
+
+  button {
+    margin-top: 40px;
+    padding: 14px 30px;
+    font-size: 18px;
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    background: #00ffcc;
+    color: #000;
+    font-weight: bold;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  footer {
+    position: absolute;
+    bottom: 20px;
+    opacity: 0.5;
+    font-size: 14px;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <!-- LOGO LOCAL -->
+  <img src="logo.png" alt="Logo do evento">
+  <h1>Sorteio ao Vivo</h1>
+</header>
+
+<main>
+  <div class="lista">
+    <h2>Participantes</h2>
+    <table id="tabela"></table>
+  </div>
+
+  <div class="sorteio">
+    <div id="display" class="nome-atual">Carregando participantes...</div>
+    <button id="btnSortear" disabled>Iniciar Sorteio</button>
+    <footer id="contador"></footer>
+  </div>
+</main>
+
+<script>
+/* ==============================
+   CONFIGURAÇÃO
+================================ */
+
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
+
+// Segunda coluna = nomes
+const COLUNA_NOME = 1;
+
+/* ==============================
+   ESTADO
+================================ */
+
+let participantes = [];
+let sorteando = false;
+
+/* ==============================
+   CSV
+================================ */
+
+async function carregarCSV() {
+  try {
+    const res = await fetch(CSV_URL);
+    const texto = await res.text();
+
+    const linhas = texto
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l);
+
+    // Remove cabeçalho
+    linhas.shift();
+
+    participantes = linhas.map(linha => {
+      // Parser simples que respeita aspas
+      const colunas = linha.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+      return colunas?.[COLUNA_NOME]?.replace(/"/g, "").trim();
+    }).filter(Boolean);
+
+    atualizarTabela();
+    atualizarContador();
+
+    document.getElementById("display").textContent =
+      "Pronto para o sorteio";
+    document.getElementById("btnSortear").disabled = false;
+
+  } catch (e) {
+    document.getElementById("display").textContent =
+      "Erro ao carregar participantes";
+    console.error(e);
+  }
+}
+
+function atualizarTabela() {
+  const tabela = document.getElementById("tabela");
+  tabela.innerHTML = "";
+
+  participantes.forEach(nome => {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.textContent = nome;
+    tr.appendChild(td);
+    tabela.appendChild(tr);
+  });
+}
+
+function atualizarContador() {
+  document.getElementById("contador").textContent =
+    `${participantes.length} participantes`;
+}
+
+/* ==============================
+   SORTEIO
+================================ */
+
+function iniciarSorteio() {
+  if (sorteando || participantes.length === 0) return;
+
+  sorteando = true;
+  const display = document.getElementById("display");
+  const btn = document.getElementById("btnSortear");
+  btn.disabled = true;
+
+  let index = 0;
+  let ciclos = 0;
+  const totalCiclos = 50 + Math.floor(Math.random() * 30);
+
+  const intervalo = setInterval(() => {
+    display.textContent = participantes[index];
+    display.className = "nome-atual";
+
+    index = (index + 1) % participantes.length;
+    ciclos++;
+
+    if (ciclos >= totalCiclos) {
+      clearInterval(intervalo);
+
+      const vencedor =
+        participantes[Math.floor(Math.random() * participantes.length)];
+
+      display.textContent = vencedor;
+      display.className = "nome-final";
+
+      sorteando = false;
+      btn.disabled = false;
+    }
+  }, 70);
+}
+
+/* ==============================
+   INIT
+================================ */
+
+document.getElementById("btnSortear")
+  .addEventListener("click", iniciarSorteio);
+
+carregarCSV();
+</script>
+
+</body>
+</html>
