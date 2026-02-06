@@ -81,27 +81,33 @@ main {
     color 0.2s ease-out;
 }
 
-/* SORTEIO */
-.sorteio {
+/* ROLETA */
+.roleta {
   position: absolute;
   text-align: center;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 1.2s ease;
+  transition: opacity 1s ease;
 }
 
-.sorteio.ativo {
+.roleta.ativo {
   opacity: 1;
 }
 
-.nome-sorteado {
-  font-size: 64px;
-  font-weight: 800;
+.roleta-nome {
+  font-size: 56px;
+  font-weight: 700;
+  color: #fff;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+/* FINAL */
+.vencedor {
   color: var(--destaque);
-  margin-bottom: 24px;
+  transform: scale(1.15);
 }
 
 .parabens {
+  margin-top: 24px;
   font-size: 26px;
   opacity: 0;
   transition: opacity 1.2s ease;
@@ -143,14 +149,14 @@ button {
 
 <main>
 
+  <!-- LISTA -->
   <div class="lista-container" id="lista">
-    <div class="lista" id="listaInterna">
-      <!-- PARTICIPANTES ENTRAM AQUI VIA CSV -->
-    </div>
+    <div class="lista" id="listaInterna"></div>
   </div>
 
-  <div class="sorteio" id="sorteio">
-    <div class="nome-sorteado" id="nomeSorteado"></div>
+  <!-- ROLETA -->
+  <div class="roleta" id="roleta">
+    <div class="roleta-nome" id="roletaNome"></div>
     <div class="parabens" id="parabens">
       Parabéns, você é o ganhador(a) do sorteio!
     </div>
@@ -162,6 +168,9 @@ button {
   <button id="btnSortear">Iniciar sorteio</button>
 </footer>
 
+<audio id="click1" src="click1.mp3" preload="auto"></audio>
+<audio id="click2" src="click2.mp3" preload="auto"></audio>
+
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
 const COLUNA_NOME = 1;
@@ -169,9 +178,15 @@ const COLUNA_NOME = 1;
 const lista = document.getElementById("lista");
 const listaInterna = document.getElementById("listaInterna");
 const btn = document.getElementById("btnSortear");
-const sorteio = document.getElementById("sorteio");
-const nomeSorteado = document.getElementById("nomeSorteado");
+const roleta = document.getElementById("roleta");
+const roletaNome = document.getElementById("roletaNome");
 const parabens = document.getElementById("parabens");
+
+const click1 = document.getElementById("click1");
+const click2 = document.getElementById("click2");
+
+let participantes = [];
+let ultimoIndiceCentro = -1;
 
 async function carregarParticipantes() {
   const res = await fetch(CSV_URL);
@@ -183,6 +198,8 @@ async function carregarParticipantes() {
     const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
     if (!nome) return;
 
+    participantes.push(nome);
+
     const div = document.createElement("div");
     div.className = "participante";
     div.textContent = nome;
@@ -193,10 +210,10 @@ async function carregarParticipantes() {
 }
 
 function atualizarScroll() {
-  const participantes = document.querySelectorAll(".participante");
   const centro = window.innerHeight / 2;
+  const items = document.querySelectorAll(".participante");
 
-  participantes.forEach(p => {
+  items.forEach((p, i) => {
     const rect = p.getBoundingClientRect();
     const pCentro = rect.top + rect.height / 2;
     const dist = Math.abs(pCentro - centro);
@@ -214,27 +231,55 @@ function atualizarScroll() {
     p.style.transform = `scale(${scale})`;
     p.style.opacity = opacity;
     p.style.color = color;
+
+    if (t > 0.9 && ultimoIndiceCentro !== i) {
+      click1.currentTime = 0;
+      click1.play();
+      ultimoIndiceCentro = i;
+    }
   });
 }
 
 lista.addEventListener("scroll", atualizarScroll);
-window.addEventListener("resize", atualizarScroll);
 
-btn.addEventListener("click", () => {
+btn.addEventListener("click", async () => {
   btn.style.opacity = 0;
   lista.style.opacity = 0;
 
   setTimeout(() => {
     lista.style.display = "none";
-    sorteio.classList.add("ativo");
-
-    const nomes = [...document.querySelectorAll(".participante")].map(p => p.textContent);
-    const vencedor = nomes[Math.floor(Math.random() * nomes.length)];
-    nomeSorteado.textContent = vencedor;
-
-    setTimeout(() => parabens.classList.add("ativo"), 2000);
-  }, 1200);
+    roleta.classList.add("ativo");
+    iniciarRoleta();
+  }, 1000);
 });
+
+function iniciarRoleta() {
+  let indice = 0;
+  let velocidade = 60;
+  let duracao = 3500;
+  let inicio = Date.now();
+
+  const intervalo = setInterval(() => {
+    roletaNome.textContent = participantes[indice % participantes.length];
+    click2.currentTime = 0;
+    click2.play();
+
+    indice++;
+    velocidade += 12;
+
+    if (Date.now() - inicio > duracao) {
+      clearInterval(intervalo);
+      finalizarSorteio(roletaNome.textContent);
+    }
+  }, velocidade);
+}
+
+function finalizarSorteio(nome) {
+  roletaNome.textContent = nome;
+  roletaNome.classList.add("vencedor");
+
+  setTimeout(() => parabens.classList.add("ativo"), 2000);
+}
 
 carregarParticipantes();
 </script>
