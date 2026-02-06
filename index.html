@@ -220,7 +220,7 @@ function tocarClickScroll() {
   som.play();
 }
 
-/* ===== LOOP CONTÍNUO (NÃO PERDE FOCO) ===== */
+/* ===== LOOP CONTÍNUO (CORRIGIDO - SEM TREMOR) ===== */
 function loopFoco() {
   const items = document.querySelectorAll(".participante");
   const centroY = window.innerHeight / 2;
@@ -237,25 +237,29 @@ function loopFoco() {
       menorDist = dist;
       indiceMaisProximo = i;
     }
-
-    const max = centroY * 0.9;
-    const t = Math.max(0, 1 - dist / max);
-
-    p.style.transform = `scale(${0.7 + t * 0.75})`;
-    p.style.opacity = 0.3 + t * 0.6;
-    p.style.color = "#777";
   });
 
-  if (indiceMaisProximo !== null) {
+  // Só atualiza se mudou o índice central
+  if (indiceMaisProximo !== indiceCentralAtual && indiceMaisProximo !== null) {
+    items.forEach((p, i) => {
+      const rect = p.getBoundingClientRect();
+      const centro = rect.top + rect.height / 2;
+      const dist = Math.abs(centro - centroY);
+      const max = centroY * 0.9;
+      const t = Math.max(0, 1 - dist / max);
+
+      p.style.transform = `scale(${0.7 + t * 0.75})`;
+      p.style.opacity = 0.3 + t * 0.6;
+      p.style.color = "#777";
+    });
+
     const p = items[indiceMaisProximo];
     p.style.color = "#fbba16";
     p.style.transform = "scale(1.5)";
     p.style.opacity = 1;
 
-    if (indiceMaisProximo !== indiceCentralAtual) {
-      tocarClickScroll();
-      indiceCentralAtual = indiceMaisProximo;
-    }
+    tocarClickScroll();
+    indiceCentralAtual = indiceMaisProximo;
   }
 
   requestAnimationFrame(loopFoco);
