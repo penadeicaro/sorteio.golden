@@ -76,9 +76,9 @@ main {
   transform: scale(0.7);
   opacity: 0.35;
   transition:
-    transform 0.2s ease-out,
-    opacity 0.2s ease-out,
-    color 0.2s ease-out;
+    transform 0.18s ease-out,
+    opacity 0.18s ease-out,
+    color 0.18s ease-out;
 }
 
 /* ROLETA */
@@ -100,7 +100,6 @@ main {
   transition: transform 0.25s ease, color 0.25s ease;
 }
 
-/* FINAL */
 .vencedor {
   color: var(--destaque);
   transform: scale(1.15);
@@ -149,12 +148,10 @@ button {
 
 <main>
 
-  <!-- LISTA -->
   <div class="lista-container" id="lista">
     <div class="lista" id="listaInterna"></div>
   </div>
 
-  <!-- ROLETA -->
   <div class="roleta" id="roleta">
     <div class="roleta-nome" id="roletaNome"></div>
     <div class="parabens" id="parabens">
@@ -186,7 +183,7 @@ const click1 = document.getElementById("click1");
 const click2 = document.getElementById("click2");
 
 let participantes = [];
-let ultimoIndiceCentro = -1;
+let ultimoIndiceCentral = null;
 
 async function carregarParticipantes() {
   const res = await fetch(CSV_URL);
@@ -209,40 +206,60 @@ async function carregarParticipantes() {
   atualizarScroll();
 }
 
+function playClick1() {
+  const som = click1.cloneNode();
+  som.volume = 0;
+  som.play();
+  let v = 0;
+  const fade = setInterval(() => {
+    v += 0.15;
+    som.volume = Math.min(v, 0.6);
+    if (v >= 0.6) clearInterval(fade);
+  }, 20);
+}
+
 function atualizarScroll() {
-  const centro = window.innerHeight / 2;
+  const centroY = window.innerHeight / 2;
   const items = document.querySelectorAll(".participante");
+
+  let indiceMaisProximo = null;
+  let menorDistancia = Infinity;
 
   items.forEach((p, i) => {
     const rect = p.getBoundingClientRect();
     const pCentro = rect.top + rect.height / 2;
-    const dist = Math.abs(pCentro - centro);
-    const max = centro * 0.85;
+    const dist = Math.abs(pCentro - centroY);
 
-    let t = Math.max(0, 1 - dist / max);
-
-    const scale = 0.7 + t * 0.9;
-    const opacity = 0.35 + t * 0.65;
-
-    let color = "#777";
-    if (t > 0.66) color = "#fbba16";
-    else if (t > 0.33) color = "#fff";
-
-    p.style.transform = `scale(${scale})`;
-    p.style.opacity = opacity;
-    p.style.color = color;
-
-    if (t > 0.9 && ultimoIndiceCentro !== i) {
-      click1.currentTime = 0;
-      click1.play();
-      ultimoIndiceCentro = i;
+    if (dist < menorDistancia) {
+      menorDistancia = dist;
+      indiceMaisProximo = i;
     }
+
+    const max = centroY * 0.9;
+    const t = Math.max(0, 1 - dist / max);
+
+    p.style.transform = `scale(${0.7 + t * 0.8})`;
+    p.style.opacity = 0.3 + t * 0.6;
+    p.style.color = "#777";
   });
+
+  if (indiceMaisProximo !== null) {
+    const p = items[indiceMaisProximo];
+    p.style.color = "#fbba16";
+    p.style.transform = "scale(1.5)";
+    p.style.opacity = 1;
+
+    if (indiceMaisProximo !== ultimoIndiceCentral) {
+      playClick1();
+      ultimoIndiceCentral = indiceMaisProximo;
+    }
+  }
 }
 
 lista.addEventListener("scroll", atualizarScroll);
+window.addEventListener("resize", atualizarScroll);
 
-btn.addEventListener("click", async () => {
+btn.addEventListener("click", () => {
   btn.style.opacity = 0;
   lista.style.opacity = 0;
 
@@ -256,10 +273,10 @@ btn.addEventListener("click", async () => {
 function iniciarRoleta() {
   let indice = 0;
   let velocidade = 60;
-  let duracao = 3500;
   let inicio = Date.now();
+  const duracao = 3500;
 
-  const intervalo = setInterval(() => {
+  const loop = setInterval(() => {
     roletaNome.textContent = participantes[indice % participantes.length];
     click2.currentTime = 0;
     click2.play();
@@ -268,16 +285,15 @@ function iniciarRoleta() {
     velocidade += 12;
 
     if (Date.now() - inicio > duracao) {
-      clearInterval(intervalo);
-      finalizarSorteio(roletaNome.textContent);
+      clearInterval(loop);
+      finalizar(roletaNome.textContent);
     }
   }, velocidade);
 }
 
-function finalizarSorteio(nome) {
+function finalizar(nome) {
   roletaNome.textContent = nome;
   roletaNome.classList.add("vencedor");
-
   setTimeout(() => parabens.classList.add("ativo"), 2000);
 }
 
