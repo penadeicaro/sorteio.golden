@@ -317,6 +317,7 @@ const click1 = document.getElementById("click1");
 const click2 = document.getElementById("click2");
 
 let participantes = [];
+let participantesDOM = []; // Cache dos elementos DOM
 let indiceCentralAtual = null;
 let animationFrameId = null;
 
@@ -336,6 +337,9 @@ async function carregarParticipantes() {
       throw new Error("CSV vazio");
     }
 
+    // Usar DocumentFragment para inserção mais eficiente
+    const fragment = document.createDocumentFragment();
+
     linhas.forEach(l => {
       const cols = l.split(",");
       const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
@@ -346,8 +350,12 @@ async function carregarParticipantes() {
       const div = document.createElement("div");
       div.className = "participante";
       div.textContent = nome;
-      listaInterna.appendChild(div);
+      fragment.appendChild(div); // Adiciona ao fragment
+      participantesDOM.push(div); // Armazena referência
     });
+
+    // Uma única inserção no DOM (muito mais rápido)
+    listaInterna.appendChild(fragment);
 
     if (participantes.length === 0) {
       throw new Error("Nenhum participante encontrado");
@@ -381,9 +389,12 @@ async function carregarParticipantes() {
 /* ===== SOM SCROLL ===== */
 function tocarClickScroll() {
   try {
-    const som = click1.cloneNode();
-    som.volume = 0.55;
-    som.play().catch(() => {}); // Ignora erro se áudio falhar
+    // Verifica se o áudio está pronto antes de manipular
+    if (click1.readyState >= 2) { // HAVE_CURRENT_DATA ou superior
+      click1.currentTime = 0;
+      click1.volume = 0.55;
+      click1.play().catch(() => {});
+    }
   } catch (e) {
     // Silenciosamente ignora se áudio não está disponível
   }
@@ -404,14 +415,21 @@ function loopFoco() {
   
   ultimoCalculo = agora;
 
-  const items = document.querySelectorAll(".participante");
+  const items = participantesDOM;
+  if (items.length === 0) return; // Proteção: cache vazio
+  
   const centroY = window.innerHeight / 2;
+  const maxTransicao = centroY * 1.35;
 
   let menorDist = Infinity;
   let indiceMaisProximo = null;
 
-  // Primeiro loop: encontra o mais próximo e atualiza todos
-  items.forEach((p, i) => {
+  // FASE 1: APENAS LEITURAS (evita layout thrashing)
+  const itemsLength = items.length;
+  const calculos = new Array(itemsLength);
+  
+  for (let i = 0; i < itemsLength; i++) {
+    const p = items[i];
     const rect = p.getBoundingClientRect();
     const centro = rect.top + rect.height / 2;
     const dist = Math.abs(centro - centroY);
@@ -421,31 +439,33 @@ function loopFoco() {
       indiceMaisProximo = i;
     }
 
-    // Área maior de transição (1.5x maior)
-    const max = centroY * 1.35;
-    const t = Math.max(0, 1 - dist / max);
+    const t = Math.max(0, 1 - dist / maxTransicao);
+    
+    // Armazena cálculos para aplicar depois
+    calculos[i] = {
+      escala: 0.7 + t * 0.9,
+      opacidade: 0.2 + t * 0.8,
+      grayValue: 119 + Math.floor(t * 136)
+    };
+  }
 
-    // Escala: 0.7 → 1.6
-    p.style.transform = `scale(${0.7 + t * 0.9})`;
+  // FASE 2: APENAS ESCRITAS (aplica estilos em batch)
+  for (let i = 0; i < itemsLength; i++) {
+    const p = items[i];
+    const calc = calculos[i];
     
-    // Opacidade: 0.2 → 1
-    p.style.opacity = 0.2 + t * 0.8;
-    
-    // Transição de cor: cinza → branco (para todos)
-    const grayValue = 119 + Math.floor(t * 136); // #777 (119) → #fff (255)
-    p.style.color = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
-    
-    // Remove negrito e destaque de todos
-    p.style.fontWeight = "normal";
-  });
+    p.style.transform = `scale(${calc.escala})`;
+    p.style.opacity = calc.opacidade;
+    p.style.color = `rgb(${calc.grayValue}, ${calc.grayValue}, ${calc.grayValue})`;
+    p.style.fontWeight = 'normal';
+  }
 
-  // Aplica destaque APENAS ao nome mais central
+  // Aplica destaque ao elemento central
   if (indiceMaisProximo !== null) {
     const p = items[indiceMaisProximo];
-    p.style.color = "#fbba16"; // Tom de destaque apenas no centro
+    p.style.color = "#fbba16";
     p.style.fontWeight = "700";
 
-    // Toca som apenas quando muda (não no início)
     if (indiceMaisProximo !== indiceCentralAtual && indiceCentralAtual !== null) {
       tocarClickScroll();
     }
@@ -457,16 +477,16 @@ function loopFoco() {
 }
 
 /* ===== CONFETE ===== */
+const CORES_CONFETE = ['#fbba16', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd'];
+
 function criarConfete() {
-  const cores = ['#fbba16', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd'];
-  
   for (let i = 0; i < 100; i++) {
     setTimeout(() => {
       const confete = document.createElement('div');
       confete.className = 'confete';
       confete.style.left = Math.random() * 100 + '%';
       confete.style.top = '-20px'; // Começa acima da viewport
-      confete.style.background = cores[Math.floor(Math.random() * cores.length)];
+      confete.style.background = CORES_CONFETE[Math.floor(Math.random() * CORES_CONFETE.length)];
       confete.style.width = (Math.random() * 10 + 5) + 'px';
       confete.style.height = (Math.random() * 10 + 5) + 'px';
       confete.style.animationDelay = (Math.random() * 0.5) + 's';
@@ -481,6 +501,9 @@ function criarConfete() {
 
 /* ===== SORTEIO COM DESACELERAÇÃO DRAMÁTICA E ALEATORIEDADE REAL ===== */
 btn.addEventListener("click", () => {
+  // Aplica will-change ANTES da animação para dar tempo do navegador otimizar
+  roletaNome.style.willChange = 'transform, opacity';
+  
   btn.style.opacity = 0;
   lista.style.opacity = 0;
 
@@ -529,9 +552,11 @@ function iniciarRoleta() {
     const agora = Date.now();
     if (agora - ultimoSomRoleta > 60) {
       try {
-        click2.currentTime = 0;
-        click2.play().catch(() => {});
-        ultimoSomRoleta = agora;
+        if (click2.readyState >= 2) { // Verifica se áudio está pronto
+          click2.currentTime = 0;
+          click2.play().catch(() => {});
+          ultimoSomRoleta = agora;
+        }
       } catch (e) {}
     }
 
@@ -560,6 +585,9 @@ function iniciarRoleta() {
 function finalizar(nome) {
   roletaNome.textContent = nome;
   roletaNome.classList.add("vencedor");
+  
+  // Remove will-change após animação completar (libera recursos GPU)
+  roletaNome.style.willChange = 'auto';
   
   // Ativa brilho
   brilho.classList.add("ativo");
