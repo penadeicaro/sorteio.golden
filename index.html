@@ -19,81 +19,105 @@
   }
 
   header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
+    text-align: center;
+    padding: 30px 20px 10px;
   }
 
   header img {
-    height: 60px;
-    object-fit: contain;
-  }
-
-  header h1 {
-    font-size: 28px;
-    font-weight: 600;
-  }
-
-  main {
-    display: flex;
-    height: calc(100vh - 100px);
-  }
-
-  .lista {
-    width: 35%;
-    padding: 20px;
-    overflow-y: auto;
-    border-right: 1px solid rgba(255,255,255,0.1);
-  }
-
-  .lista h2 {
+    height: 70px;
     margin-bottom: 10px;
   }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
+  header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 1px;
   }
 
-  td {
-    padding: 8px 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    font-size: 16px;
+  main {
+    position: relative;
+    height: calc(100vh - 220px);
+    overflow: hidden;
   }
 
+  /* LISTA DE PARTICIPANTES */
+  .lista-container {
+    height: 100%;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .participante {
+    text-align: center;
+    font-size: 20px;
+    opacity: 0.3;
+    padding: 16px 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .participante.foco {
+    font-size: 42px;
+    opacity: 1;
+    color: #fbba16;
+    font-weight: bold;
+  }
+
+  /* ÁREA DE SORTEIO */
   .sorteio {
-    flex: 1;
+    position: absolute;
+    inset: 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    position: relative;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .sorteio.ativo {
+    opacity: 1;
+    pointer-events: all;
   }
 
   .nome-atual {
     font-size: 48px;
-    font-weight: bold;
     opacity: 0.4;
-    transition: all 0.15s ease;
   }
 
   .nome-final {
-    font-size: 64px;
+    font-size: 72px;
+    color: #fbba16;
     font-weight: 800;
-    color: #00ffcc;
-    text-shadow: 0 0 30px rgba(0,255,200,0.8);
+    text-shadow: 0 0 40px rgba(251,186,22,0.8);
+  }
+
+  .parabens {
+    margin-top: 20px;
+    font-size: 24px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .parabens.show {
     opacity: 1;
   }
 
+  /* BOTÃO */
+  footer {
+    position: absolute;
+    bottom: 30px;
+    width: 100%;
+    text-align: center;
+  }
+
   button {
-    margin-top: 40px;
-    padding: 14px 30px;
+    padding: 16px 40px;
     font-size: 18px;
     border: none;
     border-radius: 40px;
     cursor: pointer;
-    background: #00ffcc;
+    background: #fbba16;
     color: #000;
     font-weight: bold;
   }
@@ -102,134 +126,106 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
-
-  footer {
-    position: absolute;
-    bottom: 20px;
-    opacity: 0.5;
-    font-size: 14px;
-  }
 </style>
 </head>
 
 <body>
 
 <header>
-  <!-- LOGO LOCAL -->
-  <img src="logo.png" alt="Logo do evento">
+  <img src="logo.png" alt="Logo">
   <h1>Sorteio ao Vivo</h1>
 </header>
 
 <main>
-  <div class="lista">
-    <h2>Participantes</h2>
-    <table id="tabela"></table>
-  </div>
+  <div id="lista" class="lista-container"></div>
 
-  <div class="sorteio">
-    <div id="display" class="nome-atual">Carregando participantes...</div>
-    <button id="btnSortear" disabled>Iniciar Sorteio</button>
-    <footer id="contador"></footer>
+  <div id="sorteio" class="sorteio">
+    <div id="display" class="nome-atual"></div>
+    <div id="parabens" class="parabens">
+      Parabéns, você é o(a) ganhador(a) do sorteio
+    </div>
   </div>
 </main>
 
-<script>
-/* ==============================
-   CONFIGURAÇÃO
-================================ */
+<footer>
+  <button id="btnSortear">Iniciar Sorteio</button>
+</footer>
 
+<script>
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
 
-// Segunda coluna = nomes
 const COLUNA_NOME = 1;
-
-/* ==============================
-   ESTADO
-================================ */
 
 let participantes = [];
 let sorteando = false;
 
-/* ==============================
-   CSV
-================================ */
-
 async function carregarCSV() {
-  try {
-    const res = await fetch(CSV_URL);
-    const texto = await res.text();
+  const res = await fetch(CSV_URL + "&_=" + Date.now());
+  const texto = await res.text();
 
-    const linhas = texto
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l);
+  const linhas = texto.split("\n").slice(1);
 
-    // Remove cabeçalho
-    linhas.shift();
+  participantes = linhas.map(l => {
+    const cols = l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+    return cols?.[COLUNA_NOME]?.replace(/"/g, "").trim();
+  }).filter(Boolean);
 
-    participantes = linhas.map(linha => {
-      // Parser simples que respeita aspas
-      const colunas = linha.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-      return colunas?.[COLUNA_NOME]?.replace(/"/g, "").trim();
-    }).filter(Boolean);
-
-    atualizarTabela();
-    atualizarContador();
-
-    document.getElementById("display").textContent =
-      "Pronto para o sorteio";
-    document.getElementById("btnSortear").disabled = false;
-
-  } catch (e) {
-    document.getElementById("display").textContent =
-      "Erro ao carregar participantes";
-    console.error(e);
-  }
+  renderLista();
 }
 
-function atualizarTabela() {
-  const tabela = document.getElementById("tabela");
-  tabela.innerHTML = "";
+function renderLista() {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
 
   participantes.forEach(nome => {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.textContent = nome;
-    tr.appendChild(td);
-    tabela.appendChild(tr);
+    const div = document.createElement("div");
+    div.className = "participante";
+    div.textContent = nome;
+    lista.appendChild(div);
+  });
+
+  atualizarFoco();
+}
+
+function atualizarFoco() {
+  const lista = document.getElementById("lista");
+  const itens = [...document.querySelectorAll(".participante")];
+  const centro = window.innerHeight / 2;
+
+  itens.forEach(item => {
+    const rect = item.getBoundingClientRect();
+    const distancia = Math.abs(rect.top + rect.height / 2 - centro);
+
+    if (distancia < 60) {
+      item.classList.add("foco");
+    } else {
+      item.classList.remove("foco");
+    }
   });
 }
 
-function atualizarContador() {
-  document.getElementById("contador").textContent =
-    `${participantes.length} participantes`;
-}
-
-/* ==============================
-   SORTEIO
-================================ */
+document.getElementById("lista")
+  .addEventListener("scroll", atualizarFoco);
 
 function iniciarSorteio() {
-  if (sorteando || participantes.length === 0) return;
-
+  if (sorteando) return;
   sorteando = true;
-  const display = document.getElementById("display");
-  const btn = document.getElementById("btnSortear");
-  btn.disabled = true;
 
+  document.getElementById("lista").style.opacity = 0;
+  document.getElementById("sorteio").classList.add("ativo");
+
+  const display = document.getElementById("display");
   let index = 0;
   let ciclos = 0;
-  const totalCiclos = 50 + Math.floor(Math.random() * 30);
+  const total = 50 + Math.floor(Math.random() * 20);
 
   const intervalo = setInterval(() => {
     display.textContent = participantes[index];
-    display.className = "nome-atual";
-
     index = (index + 1) % participantes.length;
     ciclos++;
 
-    if (ciclos >= totalCiclos) {
+    if (ciclos >= total) {
       clearInterval(intervalo);
 
       const vencedor =
@@ -238,15 +234,12 @@ function iniciarSorteio() {
       display.textContent = vencedor;
       display.className = "nome-final";
 
-      sorteando = false;
-      btn.disabled = false;
+      setTimeout(() => {
+        document.getElementById("parabens").classList.add("show");
+      }, 2000);
     }
   }, 70);
 }
-
-/* ==============================
-   INIT
-================================ */
 
 document.getElementById("btnSortear")
   .addEventListener("click", iniciarSorteio);
