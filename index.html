@@ -490,18 +490,19 @@ btn.addEventListener("click", () => {
 function iniciarRoleta() {
   let indice = 0;
   const inicio = Date.now();
-  const duracao = 5000; // 5 segundos total
+  const duracao = 7000; // 7 segundos total para mais tensão
   
   function girar() {
     const decorrido = Date.now() - inicio;
     const progresso = decorrido / duracao;
     
-    // Curva de desaceleração exponencial (easeOutQuart)
-    const easing = 1 - Math.pow(1 - progresso, 4);
+    // Curva de desaceleração suave (easeOutCubic)
+    const easing = 1 - Math.pow(1 - progresso, 3);
     
-    // Velocidade diminui exponencialmente
-    const velocidadeBase = 30; // mais rápido no início
-    const intervalo = velocidadeBase + (easing * 800); // desacelera até 830ms
+    // Começa SUPER rápido (10ms) e desacelera até 1200ms
+    const velocidadeInicial = 10;
+    const velocidadeFinal = 1200;
+    const intervalo = velocidadeInicial + (easing * (velocidadeFinal - velocidadeInicial));
     
     if (decorrido < duracao) {
       roletaNome.textContent = participantes[indice % participantes.length];
