@@ -517,8 +517,6 @@ btn.addEventListener("click", () => {
   }, 1000);
 });
 
-let ultimoSomRoleta = 0;
-
 function iniciarRoleta() {
   // ===== SORTEIO JUSTO E ALEATÓRIO =====
   // O vencedor é escolhido ANTES da animação começar
@@ -545,15 +543,11 @@ function iniciarRoleta() {
     // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = participantes[indice % participantes.length];
     
-    // Throttle do som: só toca se passou pelo menos 60ms desde o último
-    const agora = Date.now();
-    if (agora - ultimoSomRoleta > 60) {
-      try {
-        click2.currentTime = 0;
-        click2.play().catch(() => {});
-        ultimoSomRoleta = agora;
-      } catch (e) {}
-    }
+    // Toca som EXATAMENTE 1x por mudança de nome
+    try {
+      click2.currentTime = 0;
+      click2.play().catch(() => {});
+    } catch (e) {}
 
     indice++;
     
