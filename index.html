@@ -20,7 +20,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow-x: hidden; /* REMOVE ROLAGEM HORIZONTAL */
+  overflow-x: hidden;
 }
 
 body {
@@ -106,11 +106,18 @@ main {
   font-size: 56px;
   font-weight: 700;
   color: #fff;
+  transition: transform 0.3s ease;
 }
 
 .vencedor {
   color: var(--destaque);
   transform: scale(1.15);
+  animation: pulso 1.5s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%, 100% { transform: scale(1.15); }
+  50% { transform: scale(1.25); }
 }
 
 .parabens {
@@ -122,6 +129,52 @@ main {
 
 .parabens.ativo {
   opacity: 1;
+}
+
+/* CONFETE */
+.confete {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background: var(--destaque);
+  position: absolute;
+  animation: cair 3s linear forwards;
+  opacity: 0;
+}
+
+@keyframes cair {
+  0% {
+    opacity: 1;
+    transform: translateY(-100vh) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+
+/* BRILHO */
+.brilho {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 186, 22, 0.4) 0%, transparent 70%);
+  animation: brilhar 2s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.brilho.ativo {
+  opacity: 1;
+}
+
+@keyframes brilhar {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.6; }
 }
 
 /* BOTÃO */
@@ -142,7 +195,67 @@ button {
   cursor: pointer;
   background: var(--destaque);
   color: #000;
-  transition: opacity 1s ease;
+  transition: opacity 1s ease, transform 0.2s ease;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: scale(1);
+}
+
+/* MENSAGEM DE ERRO */
+.erro {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 59, 48, 0.9);
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.erro.ativo {
+  opacity: 1;
+}
+
+.erro h2 {
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+
+.erro p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* LOADING */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  opacity: 0.7;
+}
+
+.loading::after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
 }
 </style>
 </head>
@@ -156,11 +269,19 @@ button {
 
 <main>
 
-  <div class="lista-container" id="lista">
+  <div class="loading" id="loading">Carregando participantes</div>
+
+  <div class="erro" id="erro">
+    <h2>Erro ao carregar</h2>
+    <p>Não foi possível carregar a lista de participantes. Verifique sua conexão e tente novamente.</p>
+  </div>
+
+  <div class="lista-container" id="lista" style="opacity: 0;">
     <div class="lista" id="listaInterna"></div>
   </div>
 
   <div class="roleta" id="roleta">
+    <div class="brilho" id="brilho"></div>
     <div class="roleta-nome" id="roletaNome"></div>
     <div class="parabens" id="parabens">
       Parabéns, você é o ganhador(a) do sorteio!
@@ -170,7 +291,7 @@ button {
 </main>
 
 <footer>
-  <button id="btnSortear">Iniciar sorteio</button>
+  <button id="btnSortear" disabled>Carregando...</button>
 </footer>
 
 <audio id="click1" src="click1.mp3" preload="auto"></audio>
@@ -186,48 +307,108 @@ const btn = document.getElementById("btnSortear");
 const roleta = document.getElementById("roleta");
 const roletaNome = document.getElementById("roletaNome");
 const parabens = document.getElementById("parabens");
+const brilho = document.getElementById("brilho");
+const loading = document.getElementById("loading");
+const erro = document.getElementById("erro");
 
 const click1 = document.getElementById("click1");
 const click2 = document.getElementById("click2");
 
 let participantes = [];
 let indiceCentralAtual = null;
+let animationFrameId = null;
 
-/* ===== CSV ===== */
+/* ===== CSV COM TRATAMENTO DE ERRO ===== */
 async function carregarParticipantes() {
-  const res = await fetch(CSV_URL);
-  const texto = await res.text();
-  const linhas = texto.split("\n").slice(1);
+  try {
+    const res = await fetch(CSV_URL);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const texto = await res.text();
+    const linhas = texto.split("\n").slice(1);
 
-  linhas.forEach(l => {
-    const cols = l.split(",");
-    const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
-    if (!nome) return;
+    if (linhas.length === 0) {
+      throw new Error("CSV vazio");
+    }
 
-    participantes.push(nome);
+    linhas.forEach(l => {
+      const cols = l.split(",");
+      const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
+      if (!nome) return;
 
-    const div = document.createElement("div");
-    div.className = "participante";
-    div.textContent = nome;
-    listaInterna.appendChild(div);
-  });
+      participantes.push(nome);
+
+      const div = document.createElement("div");
+      div.className = "participante";
+      div.textContent = nome;
+      listaInterna.appendChild(div);
+    });
+
+    if (participantes.length === 0) {
+      throw new Error("Nenhum participante encontrado");
+    }
+
+    // Sucesso - mostrar interface
+    loading.style.opacity = 0;
+    setTimeout(() => {
+      loading.style.display = "none";
+      lista.style.opacity = 1;
+      btn.disabled = false;
+      btn.textContent = "Iniciar sorteio";
+    }, 500);
+
+    return true;
+
+  } catch (error) {
+    console.error("Erro ao carregar participantes:", error);
+    
+    // Mostrar mensagem de erro
+    loading.style.opacity = 0;
+    setTimeout(() => {
+      loading.style.display = "none";
+      erro.classList.add("ativo");
+    }, 500);
+    
+    return false;
+  }
 }
 
 /* ===== SOM SCROLL ===== */
 function tocarClickScroll() {
-  const som = click1.cloneNode();
-  som.volume = 0.55;
-  som.play();
+  try {
+    const som = click1.cloneNode();
+    som.volume = 0.55;
+    som.play().catch(() => {}); // Ignora erro se áudio falhar
+  } catch (e) {
+    // Silenciosamente ignora se áudio não está disponível
+  }
 }
 
-/* ===== LOOP CONTÍNUO (CORRIGIDO - SEM TREMOR) ===== */
+/* ===== LOOP OTIMIZADO (THROTTLED) ===== */
+let ultimoCalculo = 0;
+const INTERVALO_CALCULO = 16; // ~60fps
+
 function loopFoco() {
+  const agora = Date.now();
+  
+  // Throttle: só recalcula a cada 16ms
+  if (agora - ultimoCalculo < INTERVALO_CALCULO) {
+    animationFrameId = requestAnimationFrame(loopFoco);
+    return;
+  }
+  
+  ultimoCalculo = agora;
+
   const items = document.querySelectorAll(".participante");
   const centroY = window.innerHeight / 2;
 
   let menorDist = Infinity;
   let indiceMaisProximo = null;
 
+  // Primeiro loop: apenas encontra o mais próximo (leve)
   items.forEach((p, i) => {
     const rect = p.getBoundingClientRect();
     const centro = rect.top + rect.height / 2;
@@ -239,8 +420,9 @@ function loopFoco() {
     }
   });
 
-  // Só atualiza se mudou o índice central
+  // Só atualiza se mudou
   if (indiceMaisProximo !== indiceCentralAtual && indiceMaisProximo !== null) {
+    // Segundo loop: atualiza estilos apenas quando necessário
     items.forEach((p, i) => {
       const rect = p.getBoundingClientRect();
       const centro = rect.top + rect.height / 2;
@@ -262,10 +444,32 @@ function loopFoco() {
     indiceCentralAtual = indiceMaisProximo;
   }
 
-  requestAnimationFrame(loopFoco);
+  animationFrameId = requestAnimationFrame(loopFoco);
 }
 
-/* ===== SORTEIO ===== */
+/* ===== CONFETE ===== */
+function criarConfete() {
+  const cores = ['#fbba16', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd'];
+  
+  for (let i = 0; i < 100; i++) {
+    setTimeout(() => {
+      const confete = document.createElement('div');
+      confete.className = 'confete';
+      confete.style.left = Math.random() * 100 + '%';
+      confete.style.background = cores[Math.floor(Math.random() * cores.length)];
+      confete.style.width = (Math.random() * 10 + 5) + 'px';
+      confete.style.height = (Math.random() * 10 + 5) + 'px';
+      confete.style.animationDelay = (Math.random() * 0.5) + 's';
+      confete.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      
+      document.body.appendChild(confete);
+      
+      setTimeout(() => confete.remove(), 4000);
+    }, i * 20);
+  }
+}
+
+/* ===== SORTEIO COM DESACELERAÇÃO DRAMÁTICA ===== */
 btn.addEventListener("click", () => {
   btn.style.opacity = 0;
   lista.style.opacity = 0;
@@ -273,40 +477,71 @@ btn.addEventListener("click", () => {
   setTimeout(() => {
     lista.style.display = "none";
     roleta.classList.add("ativo");
+    
+    // Cancela o loop da lista
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+    
     iniciarRoleta();
   }, 1000);
 });
 
 function iniciarRoleta() {
   let indice = 0;
-  let velocidade = 60;
   const inicio = Date.now();
-  const duracao = 3500;
-
-  const loop = setInterval(() => {
-    roletaNome.textContent = participantes[indice % participantes.length];
-    click2.currentTime = 0;
-    click2.play();
-
-    indice++;
-    velocidade += 12;
-
-    if (Date.now() - inicio > duracao) {
-      clearInterval(loop);
-      finalizar(roletaNome.textContent);
+  const duracao = 5000; // 5 segundos total
+  
+  function girar() {
+    const decorrido = Date.now() - inicio;
+    const progresso = decorrido / duracao;
+    
+    // Curva de desaceleração exponencial (easeOutQuart)
+    const easing = 1 - Math.pow(1 - progresso, 4);
+    
+    // Velocidade diminui exponencialmente
+    const velocidadeBase = 30; // mais rápido no início
+    const intervalo = velocidadeBase + (easing * 800); // desacelera até 830ms
+    
+    if (decorrido < duracao) {
+      roletaNome.textContent = participantes[indice % participantes.length];
+      
+      try {
+        click2.currentTime = 0;
+        click2.play().catch(() => {});
+      } catch (e) {}
+      
+      indice++;
+      setTimeout(girar, intervalo);
+    } else {
+      // Garante que para em um nome aleatório consistente
+      const vencedorIndice = Math.floor(Math.random() * participantes.length);
+      finalizar(participantes[vencedorIndice]);
     }
-  }, velocidade);
+  }
+  
+  girar();
 }
 
 function finalizar(nome) {
   roletaNome.textContent = nome;
   roletaNome.classList.add("vencedor");
-  setTimeout(() => parabens.classList.add("ativo"), 2000);
+  
+  // Ativa brilho
+  brilho.classList.add("ativo");
+  
+  // Confete explosivo
+  setTimeout(() => criarConfete(), 300);
+  
+  // Mensagem de parabéns
+  setTimeout(() => parabens.classList.add("ativo"), 1500);
 }
 
 /* INIT */
-carregarParticipantes().then(() => {
-  requestAnimationFrame(loopFoco);
+carregarParticipantes().then(sucesso => {
+  if (sucesso) {
+    animationFrameId = requestAnimationFrame(loopFoco);
+  }
 });
 </script>
 
