@@ -497,6 +497,8 @@ btn.addEventListener("click", () => {
   }, 1000);
 });
 
+let ultimoSomRoleta = 0;
+
 function iniciarRoleta() {
   let indice = 0;
   const inicio = Date.now();
@@ -513,10 +515,15 @@ function iniciarRoleta() {
 
     roletaNome.textContent = participantes[indice % participantes.length];
     
-    try {
-      click2.currentTime = 0;
-      click2.play().catch(() => {});
-    } catch (e) {}
+    // Throttle do som: só toca se passou pelo menos 60ms desde o último
+    const agora = Date.now();
+    if (agora - ultimoSomRoleta > 60) {
+      try {
+        click2.currentTime = 0;
+        click2.play().catch(() => {});
+        ultimoSomRoleta = agora;
+      } catch (e) {}
+    }
 
     indice++;
     
@@ -526,12 +533,12 @@ function iniciarRoleta() {
       // Primeira metade (0-6s): ACELERA
       const progresso = decorrido / metade; // 0 a 1
       const curva = Math.pow(progresso, 2); // Curva quadrática (acelera rápido)
-      velocidade = 200 - (curva * 170); // 200ms → 30ms
+      velocidade = 200 - (curva * 130); // 200ms → 70ms (não tão rápido, era 30ms)
     } else {
       // Segunda metade (6-12s): DESACELERA
       const progresso = (decorrido - metade) / metade; // 0 a 1
       const curva = Math.pow(progresso, 2); // Curva quadrática (desacelera rápido)
-      velocidade = 30 + (curva * 370); // 30ms → 400ms (bem devagar no final)
+      velocidade = 70 + (curva * 330); // 70ms → 400ms (desacelera bem no final)
     }
 
     setTimeout(girar, velocidade);
