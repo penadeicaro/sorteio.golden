@@ -494,7 +494,14 @@ function iniciarRoleta() {
   const duracao = 3500;
   const inicioDesaceleracao = 2500; // Começa a desacelerar aos 2.5s
 
-  const loop = setInterval(() => {
+  function girar() {
+    const decorrido = Date.now() - inicio;
+    
+    if (decorrido > duracao) {
+      finalizar(participantes[indice % participantes.length]);
+      return;
+    }
+
     roletaNome.textContent = participantes[indice % participantes.length];
     
     try {
@@ -504,21 +511,17 @@ function iniciarRoleta() {
 
     indice++;
     
-    const decorrido = Date.now() - inicio;
-    
-    // Velocidade normal até 2.5s
+    // Velocidade normal até 2.5s, depois desacelera
     if (decorrido < inicioDesaceleracao) {
-      velocidade += 12;
+      velocidade += 12; // incremento original
     } else {
-      // Desacelera progressivamente no último segundo
-      velocidade += 35;
+      velocidade += 35; // desacelera mais rápido no final
     }
 
-    if (decorrido > duracao) {
-      clearInterval(loop);
-      finalizar(roletaNome.textContent);
-    }
-  }, velocidade);
+    setTimeout(girar, velocidade);
+  }
+  
+  girar();
 }
 
 function finalizar(nome) {
