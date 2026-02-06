@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Sorteio ao Vivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 :root {
@@ -12,134 +13,137 @@
 
 * {
   box-sizing: border-box;
-  user-select: none;
+  margin: 0;
+  padding: 0;
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
+  width: 100%;
   height: 100%;
-  background: #000;
-  color: #fff;
-  font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden;
+  overflow-x: hidden; /* REMOVE ROLAGEM HORIZONTAL */
 }
 
 body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-y: hidden;
 }
 
+/* TOPO */
 header {
   text-align: center;
-  padding-top: 24px;
+  padding-top: 32px;
 }
 
 header img {
   height: 80px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 header h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 600;
+  font-size: 40px;
+  font-weight: 700;
 }
 
-#container {
-  flex: 1;
-  width: 100%;
+/* ÁREA CENTRAL */
+main {
+  height: calc(100vh - 200px);
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow: hidden;
 }
 
-#lista {
-  height: 60vh;
+/* LISTA */
+.lista-container {
+  position: absolute;
+  inset: 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.lista-container::-webkit-scrollbar {
+  display: none;
+}
+
+.lista {
+  padding-top: 45vh;
+  padding-bottom: 45vh;
   width: 100%;
-  max-width: 600px;
-  overflow: hidden;
-  position: relative;
 }
 
 .participante {
-  height: 56px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 18px;
+  width: 100%;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 28px;
   color: var(--cinza);
-  opacity: 0.4;
+  transform: scale(0.7);
+  opacity: 0.35;
   will-change: transform, opacity, color;
+  transition:
+    transform 0.18s ease-out,
+    opacity 0.18s ease-out,
+    color 0.18s ease-out;
 }
 
-.participante.medio {
-  color: #fff;
-  opacity: 0.7;
+/* ROLETA */
+.roleta {
+  position: absolute;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1s ease;
 }
 
-.participante.ativo {
-  color: var(--destaque);
+.roleta.ativo {
   opacity: 1;
 }
 
-#linha-centro {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 0;
-  pointer-events: none;
+.roleta-nome {
+  font-size: 56px;
+  font-weight: 700;
+  color: #fff;
 }
 
-#btnSortear {
-  margin-bottom: 24px;
-  padding: 14px 36px;
+.vencedor {
+  color: var(--destaque);
+  transform: scale(1.15);
+}
+
+.parabens {
+  margin-top: 24px;
+  font-size: 26px;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.parabens.ativo {
+  opacity: 1;
+}
+
+/* BOTÃO */
+footer {
+  position: absolute;
+  bottom: 32px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  padding: 18px 36px;
   font-size: 20px;
+  font-weight: 600;
+  border-radius: 999px;
   border: none;
-  border-radius: 40px;
+  cursor: pointer;
   background: var(--destaque);
   color: #000;
-  cursor: pointer;
-  transition: opacity 0.4s ease;
+  transition: opacity 1s ease;
 }
-
-#btnSortear.fade {
-  opacity: 0;
-  pointer-events: none;
-}
-
-#overlay {
-  position: absolute;
-  inset: 0;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.8s ease;
-}
-
-#overlay.ativo {
-  opacity: 1;
-  pointer-events: all;
-}
-
-#overlay h2 {
-  font-size: 64px;
-  color: var(--destaque);
-  margin: 0;
-}
-
-#overlay p {
-  margin-top: 16px;
-  font-size: 24px;
-}
-
 </style>
 </head>
 
@@ -150,132 +154,153 @@ header h1 {
   <h1>Sorteio ao Vivo</h1>
 </header>
 
-<div id="container">
+<main>
 
-  <div id="lista"></div>
-  <div id="linha-centro"></div>
-
-  <div id="overlay">
-    <h2 id="ganhador"></h2>
-    <p>Parabéns, você é o(a) ganhador(a) do sorteio!</p>
+  <div class="lista-container" id="lista">
+    <div class="lista" id="listaInterna"></div>
   </div>
 
-</div>
+  <div class="roleta" id="roleta">
+    <div class="roleta-nome" id="roletaNome"></div>
+    <div class="parabens" id="parabens">
+      Parabéns, você é o ganhador(a) do sorteio!
+    </div>
+  </div>
 
-<button id="btnSortear">Iniciar sorteio</button>
+</main>
 
-<audio id="somScroll" src="click1.mp3"></audio>
-<audio id="somSorteio" src="click2.mp3"></audio>
+<footer>
+  <button id="btnSortear">Iniciar sorteio</button>
+</footer>
+
+<audio id="click1" src="click1.mp3" preload="auto"></audio>
+<audio id="click2" src="click2.mp3" preload="auto"></audio>
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
 const COLUNA_NOME = 1;
 
 const lista = document.getElementById("lista");
+const listaInterna = document.getElementById("listaInterna");
 const btn = document.getElementById("btnSortear");
-const overlay = document.getElementById("overlay");
-const ganhadorEl = document.getElementById("ganhador");
+const roleta = document.getElementById("roleta");
+const roletaNome = document.getElementById("roletaNome");
+const parabens = document.getElementById("parabens");
 
-const somScroll = document.getElementById("somScroll");
-const somSorteio = document.getElementById("somSorteio");
+const click1 = document.getElementById("click1");
+const click2 = document.getElementById("click2");
 
 let participantes = [];
-let alturaItem = 56;
-let ultimoIndexAtivo = -1;
-let scrollTravado = false;
+let indiceCentralAtual = null;
 
+/* ===== CSV ===== */
 async function carregarParticipantes() {
   const res = await fetch(CSV_URL);
-  const txt = await res.text();
-  const linhas = txt.split("\n").slice(1);
+  const texto = await res.text();
+  const linhas = texto.split("\n").slice(1);
 
-  participantes = linhas
-    .map(l => l.split(",")[COLUNA_NOME])
-    .filter(Boolean)
-    .map(n => n.replace(/(^"|"$)/g, "").trim());
+  linhas.forEach(l => {
+    const cols = l.split(",");
+    const nome = cols[COLUNA_NOME]?.replace(/"/g, "").trim();
+    if (!nome) return;
 
-  lista.innerHTML = "";
-  participantes.forEach(nome => {
+    participantes.push(nome);
+
     const div = document.createElement("div");
     div.className = "participante";
     div.textContent = nome;
-    lista.appendChild(div);
+    listaInterna.appendChild(div);
   });
 }
 
+/* ===== SOM SCROLL ===== */
+function tocarClickScroll() {
+  const som = click1.cloneNode();
+  som.volume = 0.55;
+  som.play();
+}
+
+/* ===== LOOP CONTÍNUO (NÃO PERDE FOCO) ===== */
 function loopFoco() {
-  const itens = document.querySelectorAll(".participante");
-  const centro = lista.scrollTop + lista.clientHeight / 2;
+  const items = document.querySelectorAll(".participante");
+  const centroY = window.innerHeight / 2;
 
-  let maisProximo = -1;
   let menorDist = Infinity;
+  let indiceMaisProximo = null;
 
-  itens.forEach((el, i) => {
-    const box = el.offsetTop + alturaItem / 2;
-    const dist = Math.abs(box - centro);
+  items.forEach((p, i) => {
+    const rect = p.getBoundingClientRect();
+    const centro = rect.top + rect.height / 2;
+    const dist = Math.abs(centro - centroY);
 
     if (dist < menorDist) {
       menorDist = dist;
-      maisProximo = i;
+      indiceMaisProximo = i;
     }
 
-    el.classList.remove("ativo", "medio");
+    const max = centroY * 0.9;
+    const t = Math.max(0, 1 - dist / max);
 
-    if (dist < alturaItem * 0.5) {
-      el.classList.add("ativo");
-      el.style.transform = "scale(1.35)";
-    } else if (dist < alturaItem * 1.5) {
-      el.classList.add("medio");
-      el.style.transform = "scale(1.1)";
-    } else {
-      el.style.transform = "scale(0.9)";
-    }
+    p.style.transform = `scale(${0.7 + t * 0.75})`;
+    p.style.opacity = 0.3 + t * 0.6;
+    p.style.color = "#777";
   });
 
-  if (maisProximo !== ultimoIndexAtivo) {
-    ultimoIndexAtivo = maisProximo;
-    somScroll.currentTime = 0;
-    somScroll.volume = 0.35;
-    somScroll.play();
+  if (indiceMaisProximo !== null) {
+    const p = items[indiceMaisProximo];
+    p.style.color = "#fbba16";
+    p.style.transform = "scale(1.5)";
+    p.style.opacity = 1;
+
+    if (indiceMaisProximo !== indiceCentralAtual) {
+      tocarClickScroll();
+      indiceCentralAtual = indiceMaisProximo;
+    }
   }
 
   requestAnimationFrame(loopFoco);
 }
 
-lista.addEventListener("wheel", e => {
-  e.preventDefault();
-  if (scrollTravado) return;
-  scrollTravado = true;
-
-  const dir = e.deltaY > 0 ? 1 : -1;
-  lista.scrollBy({ top: dir * alturaItem, behavior: "smooth" });
-
-  setTimeout(() => scrollTravado = false, 240);
-}, { passive: false });
-
-btn.onclick = () => {
-  btn.classList.add("fade");
+/* ===== SORTEIO ===== */
+btn.addEventListener("click", () => {
+  btn.style.opacity = 0;
   lista.style.opacity = 0;
 
   setTimeout(() => {
     lista.style.display = "none";
-    overlay.classList.add("ativo");
+    roleta.classList.add("ativo");
+    iniciarRoleta();
+  }, 1000);
+});
 
-    let i = 0;
-    const intervalo = setInterval(() => {
-      ganhadorEl.textContent = participantes[Math.floor(Math.random() * participantes.length)];
-      somSorteio.currentTime = 0;
-      somSorteio.play();
-      i++;
-      if (i > 30) {
-        clearInterval(intervalo);
-        ganhadorEl.style.transform = "scale(1.2)";
-      }
-    }, 80);
+function iniciarRoleta() {
+  let indice = 0;
+  let velocidade = 60;
+  const inicio = Date.now();
+  const duracao = 3500;
 
-  }, 600);
-};
+  const loop = setInterval(() => {
+    roletaNome.textContent = participantes[indice % participantes.length];
+    click2.currentTime = 0;
+    click2.play();
 
+    indice++;
+    velocidade += 12;
+
+    if (Date.now() - inicio > duracao) {
+      clearInterval(loop);
+      finalizar(roletaNome.textContent);
+    }
+  }, velocidade);
+}
+
+function finalizar(nome) {
+  roletaNome.textContent = nome;
+  roletaNome.classList.add("vencedor");
+  setTimeout(() => parabens.classList.add("ativo"), 2000);
+}
+
+/* INIT */
 carregarParticipantes().then(() => {
   requestAnimationFrame(loopFoco);
 });
