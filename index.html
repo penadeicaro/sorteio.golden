@@ -300,7 +300,7 @@ button:disabled {
 <audio id="click2" src="click2.mp3" preload="auto"></audio>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-d16KOjhYvIm4KLp5FnvJW479ZZ6I5MJ-r734uCbPeiEEPrq66GN9uFp1wocuW0Ib1BGEcKTA-a4W/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
 const COLUNA_NOME = 1;
 
 const lista = document.getElementById("lista");
@@ -518,36 +518,63 @@ btn.addEventListener("click", () => {
 });
 
 function iniciarRoleta() {
+  // Proteção: verifica se há participantes
+  if (!participantes || participantes.length === 0) {
+    console.error('❌ Erro: Nenhum participante carregado!');
+    return;
+  }
+
   // ===== SORTEIO JUSTO E ALEATÓRIO =====
   // O vencedor é escolhido ANTES da animação começar
   const indiceVencedor = Math.floor(Math.random() * participantes.length);
   const vencedor = participantes[indiceVencedor];
   
   console.log(`🎲 Vencedor sorteado: ${vencedor} (posição ${indiceVencedor + 1}/${participantes.length})`);
+  console.log(`📊 Total de participantes: ${participantes.length}`);
   
   // Índice inicial aleatório para variar a animação visual
   let indice = Math.floor(Math.random() * participantes.length);
   const inicio = Date.now();
   const duracao = 12000; // 12 segundos
   const metade = 6000; // 6 segundos
+  let contagemSons = 0; // Debug: conta quantos sons tocaram
 
   function girar() {
     const decorrido = Date.now() - inicio;
     
     if (decorrido > duracao) {
       // Garante que o vencedor sorteado seja exibido
+      console.log(`🔊 Total de sons tocados: ${contagemSons}`);
       finalizar(vencedor);
       return;
     }
 
+    // Proteção: garante que o índice é válido
+    const indiceAtual = indice % participantes.length;
+    const nomeAtual = participantes[indiceAtual];
+    
+    if (!nomeAtual) {
+      console.error(`❌ Nome inválido no índice ${indiceAtual}`);
+      return;
+    }
+
     // Animação visual (percorre nomes aleatoriamente)
-    roletaNome.textContent = participantes[indice % participantes.length];
+    roletaNome.textContent = nomeAtual;
     
     // Toca som EXATAMENTE 1x por mudança de nome
     try {
-      click2.currentTime = 0;
-      click2.play().catch(() => {});
-    } catch (e) {}
+      if (click2 && click2.play) {
+        click2.currentTime = 0;
+        click2.play().catch((err) => {
+          console.warn('⚠️ Erro ao tocar som:', err);
+        });
+        contagemSons++;
+      } else {
+        console.error('❌ Elemento de áudio click2 não disponível');
+      }
+    } catch (e) {
+      console.error('❌ Erro no try-catch do som:', e);
+    }
 
     indice++;
     
@@ -598,4 +625,3 @@ carregarParticipantes().then(sucesso => {
 
 </body>
 </html>
-
