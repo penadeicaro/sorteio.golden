@@ -300,7 +300,7 @@ button:disabled {
 <audio id="click2" src="click2.mp3" preload="auto"></audio>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOjLw7gUCEfb1a9WbWWL2nx7IziAzih82r3tJCUIK_G6_9cVFkVhv6BwoqB3NhmFxLu5HHhDpVC4BG/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-d16KOjhYvIm4KLp5FnvJW479ZZ6I5MJ-r734uCbPeiEEPrq66GN9uFp1wocuW0Ib1BGEcKTA-a4W/pub?output=csv";
 const COLUNA_NOME = 1;
 
 const lista = document.getElementById("lista");
@@ -561,19 +561,20 @@ function iniciarRoleta() {
     // Animação visual (percorre nomes aleatoriamente)
     roletaNome.textContent = nomeAtual;
     
-    // Toca som EXATAMENTE 1x por mudança de nome
+    // Toca som usando clone (evita bloqueio do navegador)
     try {
-      if (click2 && click2.play) {
-        click2.currentTime = 0;
-        click2.play().catch((err) => {
+      const somClone = click2.cloneNode();
+      somClone.volume = 0.8;
+      somClone.play().catch((err) => {
+        if (contagemSons < 5) { // Só loga os primeiros erros
           console.warn('⚠️ Erro ao tocar som:', err);
-        });
-        contagemSons++;
-      } else {
-        console.error('❌ Elemento de áudio click2 não disponível');
-      }
+        }
+      });
+      contagemSons++;
     } catch (e) {
-      console.error('❌ Erro no try-catch do som:', e);
+      if (contagemSons < 5) {
+        console.error('❌ Erro no try-catch do som:', e);
+      }
     }
 
     indice++;
